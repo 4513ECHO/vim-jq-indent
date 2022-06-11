@@ -8,6 +8,7 @@ let s:TYPE_END = 'TYPE_END'
 let s:TYPE_TRY = 'TYPE_TRY'
 let s:TYPE_CATCH = 'TYPE_CATCH'
 let s:TYPE_DEF = 'TYPE_DEF'
+let s:TYPE_ENDDEF = 'TYPE_ENDDEF'
 let s:TYPE_BLOCK = 'TYPE_BLOCK'
 let s:TYPE_ENDBLOCK = 'TYPE_ENDBLOCK'
 
@@ -46,6 +47,8 @@ function! jq_indent#exec(lnum) abort
   else
     if index(s:BEGIN_LIST, prev_type) != -1
       let n += shiftwidth()
+    elseif prev_type == s:TYPE_ENDDEF
+      let n -= shiftwidth()
     endif
   endif
   if g:jq_indent#debug
@@ -64,6 +67,9 @@ function! jq_indent#get_type(line, lnum) abort
     let t = s:TYPE_BLOCK
   elseif text =~# '\v^[})\]]%(\[\])?;?$'
     let t = s:TYPE_ENDBLOCK
+    if text =~# ';$' && searchpairpos('(', '', ')', 'bWn') == [0, 0]
+      let t = s:TYPE_ENDDEF
+    endif
   elseif text =~# '^\<if\>.*\<then\>.*\<end\>$'
     let t = s:TYPE_ONELINER
   elseif text =~# '^\<try\>.*\<catch\>.*$'
@@ -84,6 +90,8 @@ function! jq_indent#get_type(line, lnum) abort
     let t = s:TYPE_CATCH
   elseif text =~# '^\<def\>'
     let t = s:TYPE_DEF
+  elseif text =~# ';$' && searchpairpos('(', '', ')', 'bWn') == [0, 0]
+    let t = s:TYPE_ENDDEF
   endif
   return [t, text]
 endfunction
